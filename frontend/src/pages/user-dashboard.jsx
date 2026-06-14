@@ -377,8 +377,9 @@ export function UserDashboard({ onNavigate }) {
                 id="camera-capture-input"
                 type="file"
                 onChange={handleFileChange}
+                onClick={() => console.log('[CAMERA_INPUT] Click event successfully reached camera input element.')}
                 accept="image/*"
-                capture="environment"
+                capture="camera"
                 className="hidden"
               />
               <div className="h-12 w-12 bg-zinc-900 rounded-xl flex items-center justify-center border border-zinc-800 mb-4 group-hover:border-white transition-colors duration-300">
@@ -405,6 +406,7 @@ export function UserDashboard({ onNavigate }) {
                 id="gallery-file-input"
                 type="file"
                 onChange={handleFileChange}
+                onClick={() => console.log('[GALLERY_INPUT] Click event successfully reached gallery input element.')}
                 accept="image/*"
                 className="hidden"
               />
