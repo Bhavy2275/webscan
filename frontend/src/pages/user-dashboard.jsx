@@ -24,111 +24,116 @@ import { DiagnosticConsole } from '../components/diagnostic-console';
  * @returns {Promise<File>} Compressed File object.
  */
 function compressImage(file, maxWidth = 1600, maxHeight = 1600, quality = 0.8) {
-  console.log('[COMPRESS] Starting compression for:', file.name, 'Size:', file.size, 'type:', file.type);
+  console.log('[COMPRESS] Starting compression via Object URL for:', file.name, 'Size:', file.size, 'type:', file.type);
   return new Promise((resolve, reject) => {
-    const reader = new FileReader();
+    let objectUrl = null;
+    try {
+      objectUrl = URL.createObjectURL(file);
+      console.log('[COMPRESS] Object URL created:', objectUrl);
+    } catch (err) {
+      console.error('[COMPRESS] Failed to create object URL:', err);
+      return reject(new Error('Failed to load image file reference: ' + err.message));
+    }
+
+    const img = new Image();
     
-    reader.onload = (event) => {
-      console.log('[COMPRESS] FileReader loaded data URL successfully.');
-      const img = new Image();
+    // CRITICAL FOR MOBILE SAFARI: Define onload and onerror BEFORE setting img.src
+    img.onload = () => {
+      console.log('[COMPRESS] Image loaded successfully. Original size:', img.width, 'x', img.height);
       
-      // CRITICAL FOR MOBILE SAFARI: Define onload and onerror BEFORE setting img.src
-      img.onload = () => {
-        console.log('[COMPRESS] Image loaded successfully in memory. Original size:', img.width, 'x', img.height);
-        let width = img.width;
-        let height = img.height;
+      // Clean up the object URL immediately once the image is loaded
+      URL.revokeObjectURL(objectUrl);
+      console.log('[COMPRESS] Revoked object URL.');
 
-        // Calculate new responsive dimensions
-        if (width > height) {
-          if (width > maxWidth) {
-            height = Math.round((height * maxWidth) / width);
-            width = maxWidth;
-          }
-        } else {
-          if (height > maxHeight) {
-            width = Math.round((width * maxHeight) / height);
-            height = maxHeight;
-          }
+      let width = img.width;
+      let height = img.height;
+
+      // Calculate new responsive dimensions
+      if (width > height) {
+        if (width > maxWidth) {
+          height = Math.round((height * maxWidth) / width);
+          width = maxWidth;
         }
-
-        console.log('[COMPRESS] New target dimensions:', width, 'x', height);
-        const canvas = document.createElement('canvas');
-        canvas.width = width;
-        canvas.height = height;
-
-        const ctx = canvas.getContext('2d');
-        if (!ctx) {
-          console.error('[COMPRESS] Failed to get 2D canvas context.');
-          return reject(new Error('Failed to get 2D canvas context.'));
+      } else {
+        if (height > maxHeight) {
+          width = Math.round((width * maxHeight) / height);
+          height = maxHeight;
         }
+      }
 
-        ctx.drawImage(img, 0, 0, width, height);
-        console.log('[COMPRESS] Image drawn to canvas.');
+      console.log('[COMPRESS] New target dimensions:', width, 'x', height);
+      const canvas = document.createElement('canvas');
+      canvas.width = width;
+      canvas.height = height;
 
-        // Fallback for canvas.toBlob on older mobile browsers
-        if (canvas.toBlob) {
-          console.log('[COMPRESS] Using canvas.toBlob...');
-          canvas.toBlob(
-            (blob) => {
-              if (!blob) {
-                console.error('[COMPRESS] canvas.toBlob returned null blob.');
-                return reject(new Error('Canvas image compression failed.'));
-              }
-              const compressedFile = new File([blob], file.name, {
-                type: 'image/jpeg',
-                lastModified: Date.now(),
-              });
-              console.log('[COMPRESS] Compression complete. New size:', compressedFile.size);
-              resolve(compressedFile);
-            },
-            'image/jpeg',
-            quality
-          );
-        } else {
-          console.log('[COMPRESS] toBlob not supported. Falling back to toDataURL...');
-          try {
-            const dataUrl = canvas.toDataURL('image/jpeg', quality);
-            const parts = dataUrl.split(',');
-            const mime = parts[0].match(/:(.*?);/)[1];
-            const bstr = atob(parts[1]);
-            let n = bstr.length;
-            const u8arr = new Uint8Array(n);
-            while (n--) {
-              u8arr[n] = bstr.charCodeAt(n);
+      const ctx = canvas.getContext('2d');
+      if (!ctx) {
+        console.error('[COMPRESS] Failed to get 2D canvas context.');
+        return reject(new Error('Failed to get 2D canvas context.'));
+      }
+
+      ctx.drawImage(img, 0, 0, width, height);
+      console.log('[COMPRESS] Image drawn to canvas.');
+
+      // Fallback for canvas.toBlob on older mobile browsers
+      if (canvas.toBlob) {
+        console.log('[COMPRESS] Using canvas.toBlob...');
+        canvas.toBlob(
+          (blob) => {
+            if (!blob) {
+              console.error('[COMPRESS] canvas.toBlob returned null blob.');
+              return reject(new Error('Canvas image compression failed.'));
             }
-            const blob = new Blob([u8arr], { type: mime });
             const compressedFile = new File([blob], file.name, {
               type: 'image/jpeg',
               lastModified: Date.now(),
             });
-            console.log('[COMPRESS] Fallback complete. New size:', compressedFile.size);
+            console.log('[COMPRESS] Compression complete. New size:', compressedFile.size);
             resolve(compressedFile);
-          } catch (e) {
-            console.error('[COMPRESS] Fallback dataURL compression failed:', e);
-            reject(new Error('Canvas toDataURL fallback failed: ' + e.message));
+          },
+          'image/jpeg',
+          quality
+        );
+      } else {
+        console.log('[COMPRESS] toBlob not supported. Falling back to toDataURL...');
+        try {
+          const dataUrl = canvas.toDataURL('image/jpeg', quality);
+          const parts = dataUrl.split(',');
+          const mime = parts[0].match(/:(.*?);/)[1];
+          const bstr = atob(parts[1]);
+          let n = bstr.length;
+          const u8arr = new Uint8Array(n);
+          while (n--) {
+            u8arr[n] = bstr.charCodeAt(n);
           }
+          const blob = new Blob([u8arr], { type: mime });
+          const compressedFile = new File([blob], file.name, {
+            type: 'image/jpeg',
+            lastModified: Date.now(),
+          });
+          console.log('[COMPRESS] Fallback complete. New size:', compressedFile.size);
+          resolve(compressedFile);
+        } catch (e) {
+          console.error('[COMPRESS] Fallback dataURL compression failed:', e);
+          reject(new Error('Canvas toDataURL fallback failed: ' + e.message));
         }
-      };
-      
-      img.onerror = (err) => {
-        console.error('[COMPRESS] Image onload error:', err);
-        reject(new Error('Failed to load image element on mobile: ' + (err.message || 'unknown error')));
-      };
-      
-      // Prevent GC of image on mobile during load
-      window.__debugImgRef = img;
-      img.src = event.target.result; // Set src LAST after handlers are bound
+      }
     };
-
-    reader.onerror = (err) => {
-      console.error('[COMPRESS] FileReader error:', err);
-      reject(new Error('Failed to read selected image file: ' + (err.message || 'unknown error')));
+    
+    img.onerror = (err) => {
+      console.error('[COMPRESS] Image onload error:', err);
+      if (objectUrl) {
+        URL.revokeObjectURL(objectUrl);
+      }
+      reject(new Error('Failed to load image element on mobile: ' + (err.message || 'unknown error')));
     };
-
-    console.log('[COMPRESS] Reading file as Data URL...');
-    reader.readAsDataURL(file);
+    
+    // Prevent GC of image on mobile during load
+    window.__debugImgRef = img;
+    img.src = objectUrl; // Set src LAST after handlers are bound
   });
 }
+
 
 
 export function UserDashboard({ onNavigate }) {
@@ -159,7 +164,10 @@ export function UserDashboard({ onNavigate }) {
       const file = e.target.files[0];
       if (!file) return;
 
-      if (!file.type || !file.type.startsWith('image/')) {
+      const isImage = (file.type && file.type.startsWith('image/')) || 
+                      /\.(jpe?g|png|gif|webp|bmp)$/i.test(file.name);
+
+      if (!isImage) {
         showToast('Please select a valid image file.', 'error');
         return;
       }
@@ -171,6 +179,7 @@ export function UserDashboard({ onNavigate }) {
       showToast('File load error: ' + err.message, 'error');
     }
   }
+
 
 
   // Trigger file selection (triggers camera on mobile)
