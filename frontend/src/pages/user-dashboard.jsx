@@ -10,7 +10,7 @@ import {
   Camera, UploadCloud, RefreshCw, LogOut, Shield, 
   CheckCircle2, AlertTriangle 
 } from 'lucide-react';
-import { DiagnosticConsole } from '../components/diagnostic-console';
+
 
 
 /**
@@ -481,11 +481,7 @@ export function UserDashboard({ onNavigate }) {
               </div>
             </div>
           </div>
-        )}
       </section>
-
-      {/* Persistent mobile debugging logs console */}
-      <DiagnosticConsole />
     </div>
   );
 }
