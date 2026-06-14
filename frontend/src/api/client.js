@@ -6,6 +6,12 @@
 import { supabase } from '../utils/supabase';
 
 let API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5001/api';
+
+// If the URL does not start with http:// or https://, prepend https:// to prevent it being treated as a relative path
+if (API_URL && !API_URL.startsWith('http://') && !API_URL.startsWith('https://') && !API_URL.startsWith('/')) {
+  API_URL = 'https://' + API_URL;
+}
+
 // Auto-append '/api' if the environmental variable omits it
 if (API_URL && !API_URL.endsWith('/api') && !API_URL.endsWith('/api/')) {
   API_URL = API_URL.replace(/\/$/, '') + '/api';
