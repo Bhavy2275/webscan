@@ -222,6 +222,23 @@ export function UserDashboard({ onNavigate }) {
     }
   }
 
+  // Request browser camera stream to force Android OS permission prompt
+  async function troubleshootCamera(e) {
+    e.preventDefault();
+    e.stopPropagation();
+    console.log('[CAMERA_PERMISSION] Requesting camera stream...');
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+      console.log('[CAMERA_PERMISSION] Access granted successfully!');
+      stream.getTracks().forEach(track => track.stop());
+      showToast('Camera permission active! Try capturing now.', 'success');
+    } catch (err) {
+      console.error('[CAMERA_PERMISSION] Permission error:', err);
+      showToast('Camera error: ' + err.message, 'error');
+    }
+  }
+
+
 
   // Cancel selected scan
   function handleCancelPreview() {
@@ -361,7 +378,14 @@ export function UserDashboard({ onNavigate }) {
               <p className="text-xs text-zinc-400 max-w-xs">
                 Directly launch your device camera to snap and scan a document.
               </p>
+              <button 
+                onClick={troubleshootCamera}
+                className="relative z-20 mt-3 text-[10px] text-zinc-500 hover:text-white underline font-mono cursor-pointer"
+              >
+                Troubleshoot Camera Permission
+              </button>
             </div>
+
 
             {/* Gallery picker card */}
             <div className="relative glass-panel border-dashed border border-zinc-800 hover:border-zinc-500 hover:bg-zinc-950/40 rounded-2xl p-12 text-center flex flex-col items-center justify-center cursor-pointer transition-all duration-350 group">
