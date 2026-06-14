@@ -161,7 +161,7 @@ export function UserDashboard({ onNavigate }) {
   }
 
   // Handle file picker selection
-  function handleFileChange(e) {
+  async function handleFileChange(e) {
     console.log('[FILE_CHANGE] Change event triggered.');
     try {
       const files = e.target.files;
@@ -172,7 +172,7 @@ export function UserDashboard({ onNavigate }) {
       }
 
       const file = files[0];
-      console.log('[FILE_CHANGE] File selected:', {
+      console.log('[FILE_CHANGE] Raw file selected:', {
         name: file.name,
         size: file.size,
         type: file.type,
@@ -188,15 +188,24 @@ export function UserDashboard({ onNavigate }) {
         return;
       }
 
-      setSelectedFile(file);
-      const previewUrl = URL.createObjectURL(file);
+      // Compress immediately to prevent OOM crash when rendering raw high-res photo in the <img> element
+      showToast('Processing and compressing scan...', 'info');
+      console.log('[FILE_CHANGE] Starting immediate image compression...');
+      const compressedFile = await compressImage(file);
+      console.log('[FILE_CHANGE] Compression complete. Compressed size:', compressedFile.size);
+
+      setSelectedFile(compressedFile);
+      const previewUrl = URL.createObjectURL(compressedFile);
       console.log('[FILE_CHANGE] Created preview URL:', previewUrl);
       setPreviewUrl(previewUrl);
+      
+      showToast('Scan ready for upload.', 'success');
     } catch (err) {
       console.error('[FILE_CHANGE] Exception caught during file load:', err);
       showToast('File load error: ' + err.message, 'error');
     }
   }
+
 
 
 
@@ -255,18 +264,12 @@ export function UserDashboard({ onNavigate }) {
     if (!selectedFile) return;
 
     setUploading(true);
-    showToast('Compressing image size...', 'info');
+    showToast('Uploading file to server...', 'info');
 
     try {
-      // 1. Compress image in browser (safely resolves on iOS/Android now)
-      console.log('[UPLOAD] Initiating compressImage...');
-      const compressedFile = await compressImage(selectedFile);
-      console.log('[UPLOAD] Image compression returned file size:', compressedFile.size);
-      
       const formData = new FormData();
-      formData.append('image', compressedFile);
+      formData.append('image', selectedFile);
 
-      showToast('Uploading file to server...', 'info');
       console.log('[UPLOAD] Initiating POST /api/upload request...');
 
       // 2. Upload file
@@ -282,6 +285,7 @@ export function UserDashboard({ onNavigate }) {
       setUploading(false);
     }
   }
+
 
 
   // Helpers
@@ -424,15 +428,15 @@ export function UserDashboard({ onNavigate }) {
                   <span className="text-[10px] px-2.5 py-0.5 rounded-full bg-zinc-800 text-zinc-300 font-bold border border-zinc-700 font-mono uppercase">
                     Capture Ready
                   </span>
-                  <h3 className="text-lg font-bold text-white truncate font-mono">{selectedFile.name}</h3>
+                  <h3 className="text-lg font-bold text-white truncate font-mono">{selectedFile?.name || 'Unnamed Scan'}</h3>
                   <div className="space-y-2 text-xs text-zinc-400 font-mono">
                     <p className="flex justify-between border-b border-zinc-800 pb-2">
                       <span>File Size:</span>
-                      <strong className="text-white">{formatBytes(selectedFile.size)}</strong>
+                      <strong className="text-white">{selectedFile ? formatBytes(selectedFile.size) : '0 Bytes'}</strong>
                     </p>
                     <p className="flex justify-between border-b border-zinc-800 pb-2">
                       <span>Format:</span>
-                      <strong className="text-white uppercase">{selectedFile.name.split('.').pop()}</strong>
+                      <strong className="text-white uppercase">{selectedFile?.name?.split('.').pop() || 'JPG'}</strong>
                     </p>
                   </div>
                 </div>
