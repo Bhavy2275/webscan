@@ -14,7 +14,7 @@ export function DiagnosticConsole() {
   const [savedOverride, setSavedOverride] = useState('');
   const logsEndRef = useRef(null);
 
-  // Sync with global window.__logs
+  // Load active override from localStorage
   useEffect(() => {
     setLogs([...(window.__logs || [])]);
 
@@ -23,7 +23,6 @@ export function DiagnosticConsole() {
       setLogs((prev) => [...prev, newLog]);
     };
 
-    // Load active override from localStorage
     const saved = localStorage.getItem('DEBUG_API_URL') || '';
     setSavedOverride(saved);
     setApiOverride(saved);
@@ -32,6 +31,18 @@ export function DiagnosticConsole() {
       window.__onLogAdded = null;
     };
   }, []);
+
+  const getFormattedActiveUrl = () => {
+    let url = savedOverride || import.meta.env.VITE_API_URL || 'http://localhost:5001/api';
+    if (url && !url.startsWith('http://') && !url.startsWith('https://') && !url.startsWith('/')) {
+      url = 'https://' + url;
+    }
+    if (url && !url.endsWith('/api') && !url.endsWith('/api/')) {
+      url = url.replace(/\/$/, '') + '/api';
+    }
+    return url;
+  };
+
 
   // Auto scroll to bottom of logs when panel is open or logs change
   useEffect(() => {
@@ -53,7 +64,7 @@ Online: ${navigator.onLine}
 VITE_API_URL: ${import.meta.env.VITE_API_URL || 'Not Set'}
 VITE_SUPABASE_URL: ${import.meta.env.VITE_SUPABASE_URL || 'Not Set'}
 API Override: ${savedOverride || 'None'}
-Active API URL: ${savedOverride || import.meta.env.VITE_API_URL || 'http://localhost:5001/api'}
+Active API URL: ${getFormattedActiveUrl()}
 
 --- LOGS ---
 ${logs.map((l) => `[${l.timestamp}] [${l.type.toUpperCase()}] ${l.message}`).join('\n')}
@@ -160,7 +171,7 @@ ${logs.map((l) => `[${l.timestamp}] [${l.type.toUpperCase()}] ${l.message}`).joi
               </p>
               <p className="flex justify-between truncate font-bold text-white">
                 <span>Active API URL:</span>
-                <span>{savedOverride || import.meta.env.VITE_API_URL || 'http://localhost:5001/api'}</span>
+                <span>{getFormattedActiveUrl()}</span>
               </p>
             </div>
 
