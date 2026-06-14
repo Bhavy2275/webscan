@@ -366,17 +366,20 @@ export function UserDashboard({ onNavigate }) {
         <h2 className="text-xs font-bold uppercase tracking-wider text-zinc-400 mb-4 font-mono">Capture Document</h2>
 
         {!previewUrl ? (
-          /* Grid showing two capture options with native input overlays */
+          /* Grid showing two capture options with native label wrappers */
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 font-mono">
             {/* Camera scanner card */}
-            <div className="relative glass-panel border-dashed border border-zinc-800 hover:border-zinc-500 hover:bg-zinc-950/40 rounded-2xl p-12 text-center flex flex-col items-center justify-center cursor-pointer transition-all duration-350 group">
+            <label 
+              htmlFor="camera-capture-input"
+              className="relative glass-panel border-dashed border border-zinc-800 hover:border-zinc-500 hover:bg-zinc-950/40 rounded-2xl p-12 text-center flex flex-col items-center justify-center cursor-pointer transition-all duration-350 group"
+            >
               <input
+                id="camera-capture-input"
                 type="file"
                 onChange={handleFileChange}
                 accept="image/*"
                 capture="environment"
-                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
-                title="Capture Photo"
+                className="hidden"
               />
               <div className="h-12 w-12 bg-zinc-900 rounded-xl flex items-center justify-center border border-zinc-800 mb-4 group-hover:border-white transition-colors duration-300">
                 <Camera className="h-5 w-5 text-zinc-400 group-hover:text-white" />
@@ -391,17 +394,19 @@ export function UserDashboard({ onNavigate }) {
               >
                 Troubleshoot Camera Permission
               </button>
-            </div>
-
+            </label>
 
             {/* Gallery picker card */}
-            <div className="relative glass-panel border-dashed border border-zinc-800 hover:border-zinc-500 hover:bg-zinc-950/40 rounded-2xl p-12 text-center flex flex-col items-center justify-center cursor-pointer transition-all duration-350 group">
+            <label 
+              htmlFor="gallery-file-input"
+              className="relative glass-panel border-dashed border border-zinc-800 hover:border-zinc-500 hover:bg-zinc-950/40 rounded-2xl p-12 text-center flex flex-col items-center justify-center cursor-pointer transition-all duration-350 group"
+            >
               <input
+                id="gallery-file-input"
                 type="file"
                 onChange={handleFileChange}
                 accept="image/*"
-                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
-                title="Upload File"
+                className="hidden"
               />
               <div className="h-12 w-12 bg-zinc-900 rounded-xl flex items-center justify-center border border-zinc-800 mb-4 group-hover:border-white transition-colors duration-300">
                 <UploadCloud className="h-5 w-5 text-zinc-400 group-hover:text-white" />
@@ -410,7 +415,7 @@ export function UserDashboard({ onNavigate }) {
               <p className="text-xs text-zinc-400 max-w-xs">
                 Choose a photo or document from your device library or Google Photos.
               </p>
-            </div>
+            </label>
           </div>
         ) : (
           /* Scan Preview Mode */
