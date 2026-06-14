@@ -3,7 +3,7 @@
  * @module hooks/use-auth
  */
 
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
 import { supabase } from '../utils/supabase';
 
 const AuthContext = createContext({
@@ -21,6 +21,8 @@ export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [role, setRole] = useState(null);
   const [loading, setLoading] = useState(true);
+  
+  const userRef = useRef(null);
 
   // Fetch the role from public.profiles table
   async function fetchUserRole(userId) {
@@ -50,6 +52,7 @@ export function AuthProvider({ children }) {
       if (!isMounted) return;
 
       if (session?.user) {
+        userRef.current = session.user;
         setUser(session.user);
         const userRole = await fetchUserRole(session.user.id);
         if (isMounted) {
@@ -68,14 +71,25 @@ export function AuthProvider({ children }) {
       if (!isMounted) return;
 
       if (session?.user) {
+        // If it is the same user ID and we already have a role fetched, bypass loading trigger
+        const isSameUser = userRef.current && userRef.current.id === session.user.id;
+        
+        userRef.current = session.user;
         setUser(session.user);
-        setLoading(true); // Re-fetch role on user state change
+
+        if (isSameUser) {
+          console.log('[AUTH] Session focus refreshed for the same user. Bypassing reload to prevent component unmount.');
+          return;
+        }
+
+        setLoading(true); // Re-fetch role on user state change only if user actually changed
         const userRole = await fetchUserRole(session.user.id);
         if (isMounted) {
           setRole(userRole);
           setLoading(false);
         }
       } else {
+        userRef.current = null;
         setUser(null);
         setRole(null);
         setLoading(false);
@@ -87,6 +101,7 @@ export function AuthProvider({ children }) {
       subscription.unsubscribe();
     };
   }, []);
+
 
   /**
    * Sign in with email and password using Supabase Auth.
