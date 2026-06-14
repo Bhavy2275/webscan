@@ -143,6 +143,9 @@ export function UserDashboard({ onNavigate }) {
   const [selectedFile, setSelectedFile] = useState(null);
   const [previewUrl, setPreviewUrl] = useState('');
   const [uploading, setUploading] = useState(false);
+
+  console.log('[RENDER] UserDashboard. selectedFile:', selectedFile?.name, 'previewUrl:', previewUrl);
+
   
   // Toast notifications
   const [toast, setToast] = useState({ show: false, message: '', type: 'success' });
