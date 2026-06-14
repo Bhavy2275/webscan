@@ -5,16 +5,27 @@
 
 import { supabase } from '../utils/supabase';
 
-let API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5001/api';
 
-// If the URL does not start with http:// or https://, prepend https:// to prevent it being treated as a relative path
-if (API_URL && !API_URL.startsWith('http://') && !API_URL.startsWith('https://') && !API_URL.startsWith('/')) {
-  API_URL = 'https://' + API_URL;
-}
+/**
+ * Resolves the API endpoint base path dynamically.
+ * Priority: LocalStorage override -> Environment variable -> Localhost fallback
+ * 
+ * @returns {string} Fully qualified API base URL.
+ */
+function getApiUrl() {
+  let url = localStorage.getItem('DEBUG_API_URL') || import.meta.env.VITE_API_URL || 'http://localhost:5001/api';
 
-// Auto-append '/api' if the environmental variable omits it
-if (API_URL && !API_URL.endsWith('/api') && !API_URL.endsWith('/api/')) {
-  API_URL = API_URL.replace(/\/$/, '') + '/api';
+  // If the URL does not start with http:// or https://, prepend https:// to prevent it being treated as a relative path
+  if (url && !url.startsWith('http://') && !url.startsWith('https://') && !url.startsWith('/')) {
+    url = 'https://' + url;
+  }
+
+  // Auto-append '/api' if the string omits it
+  if (url && !url.endsWith('/api') && !url.endsWith('/api/')) {
+    url = url.replace(/\/$/, '') + '/api';
+  }
+
+  return url;
 }
 
 /**
@@ -46,7 +57,10 @@ async function request(path, options = {}) {
     }
   }
 
-  const response = await fetch(`${API_URL}${path}`, {
+  const activeApiUrl = getApiUrl();
+  console.log(`[API CLIENT] Fetching: ${activeApiUrl}${path}`);
+
+  const response = await fetch(`${activeApiUrl}${path}`, {
     ...options,
     headers
   });
@@ -74,3 +88,4 @@ export const api = {
   put: (path, body, options) => request(path, { ...options, method: 'PUT', body }),
   delete: (path, options) => request(path, { ...options, method: 'DELETE' }),
 };
+

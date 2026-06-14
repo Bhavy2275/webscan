@@ -6,6 +6,8 @@
 import React, { useState } from 'react';
 import { useAuth } from '../hooks/use-auth';
 import { LogIn, Loader2, KeyRound, Mail, Camera } from 'lucide-react';
+import { DiagnosticConsole } from '../components/diagnostic-console';
+
 
 export function Login() {
   const { signIn } = useAuth();
@@ -124,6 +126,10 @@ export function Login() {
           SECURE WORKSPACE. UNAUTHORIZED ACCESS PROHIBITED.
         </div>
       </div>
+      
+      {/* Diagnostics Console Panel for pre-login and connection issues */}
+      <DiagnosticConsole />
     </div>
   );
 }
+

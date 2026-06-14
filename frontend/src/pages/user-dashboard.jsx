@@ -10,6 +10,8 @@ import {
   Camera, UploadCloud, RefreshCw, LogOut, Shield, 
   CheckCircle2, AlertTriangle 
 } from 'lucide-react';
+import { DiagnosticConsole } from '../components/diagnostic-console';
+
 
 /**
  * Compresses and resizes an image file natively in the browser using HTML5 Canvas.
@@ -131,17 +133,23 @@ export function UserDashboard({ onNavigate }) {
 
   // Handle file picker selection
   function handleFileChange(e) {
-    const file = e.target.files[0];
-    if (!file) return;
+    try {
+      const file = e.target.files[0];
+      if (!file) return;
 
-    if (!file.type.startsWith('image/')) {
-      showToast('Please select a valid image file.', 'error');
-      return;
+      if (!file.type || !file.type.startsWith('image/')) {
+        showToast('Please select a valid image file.', 'error');
+        return;
+      }
+
+      setSelectedFile(file);
+      setPreviewUrl(URL.createObjectURL(file));
+    } catch (err) {
+      console.error('File selection error:', err);
+      showToast('File load error: ' + err.message, 'error');
     }
-
-    setSelectedFile(file);
-    setPreviewUrl(URL.createObjectURL(file));
   }
+
 
   // Trigger file selection (triggers camera on mobile)
   function triggerScanner() {
@@ -200,25 +208,28 @@ export function UserDashboard({ onNavigate }) {
 
   return (
     <div className="max-w-4xl mx-auto px-4 py-8">
-      {/* Centered Toast Notification */}
+      {/* Centered Toast Notification Container */}
       {toast.show && (
-        <div className={`fixed top-6 left-1/2 transform -translate-x-1/2 z-50 flex items-center space-x-3 p-4 rounded-xl shadow-xl border animate-fade-in w-[90%] max-w-sm ${
-          toast.type === 'error' 
-            ? 'bg-red-950/95 border-red-500/30 text-red-200' 
-            : toast.type === 'info'
-              ? 'bg-zinc-900/95 border-zinc-700/50 text-zinc-300 font-mono animate-pulse'
-              : 'bg-zinc-900/95 border-zinc-700/50 text-white font-mono'
-        }`}>
-          {toast.type === 'error' ? (
-            <AlertTriangle className="h-4 w-4 text-red-400 flex-shrink-0" />
-          ) : toast.type === 'info' ? (
-            <RefreshCw className="h-4 w-4 text-zinc-400 animate-spin flex-shrink-0" />
-          ) : (
-            <CheckCircle2 className="h-4 w-4 text-white flex-shrink-0" />
-          )}
-          <span className="text-xs font-semibold">{toast.message}</span>
+        <div className="fixed top-6 left-0 right-0 z-50 flex justify-center pointer-events-none px-4 animate-fade-in">
+          <div className={`pointer-events-auto flex items-center space-x-3 p-4 rounded-xl shadow-xl border w-full max-w-sm ${
+            toast.type === 'error' 
+              ? 'bg-red-950/95 border-red-500/30 text-red-200' 
+              : toast.type === 'info'
+                ? 'bg-zinc-900/95 border-zinc-700/50 text-zinc-300 font-mono animate-pulse'
+                : 'bg-zinc-900/95 border-zinc-700/50 text-white font-mono'
+          }`}>
+            {toast.type === 'error' ? (
+              <AlertTriangle className="h-4 w-4 text-red-400 flex-shrink-0" />
+            ) : toast.type === 'info' ? (
+              <RefreshCw className="h-4 w-4 text-zinc-400 animate-spin flex-shrink-0" />
+            ) : (
+              <CheckCircle2 className="h-4 w-4 text-white flex-shrink-0" />
+            )}
+            <span className="text-xs font-semibold">{toast.message}</span>
+          </div>
         </div>
       )}
+
 
       {/* Header bar */}
       <header className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4 pb-6 border-b border-zinc-800">
@@ -348,6 +359,10 @@ export function UserDashboard({ onNavigate }) {
           </div>
         )}
       </section>
+
+      {/* Persistent mobile debugging logs console */}
+      <DiagnosticConsole />
     </div>
   );
 }
+
