@@ -160,25 +160,42 @@ export function UserDashboard({ onNavigate }) {
 
   // Handle file picker selection
   function handleFileChange(e) {
+    console.log('[FILE_CHANGE] Change event triggered.');
     try {
-      const file = e.target.files[0];
-      if (!file) return;
+      const files = e.target.files;
+      if (!files || files.length === 0) {
+        console.warn('[FILE_CHANGE] No files returned in target event.');
+        showToast('No file selected.', 'error');
+        return;
+      }
+
+      const file = files[0];
+      console.log('[FILE_CHANGE] File selected:', {
+        name: file.name,
+        size: file.size,
+        type: file.type,
+        lastModified: file.lastModified
+      });
 
       const isImage = (file.type && file.type.startsWith('image/')) || 
                       /\.(jpe?g|png|gif|webp|bmp)$/i.test(file.name);
 
       if (!isImage) {
+        console.warn('[FILE_CHANGE] File is not recognized as an image:', file.name, file.type);
         showToast('Please select a valid image file.', 'error');
         return;
       }
 
       setSelectedFile(file);
-      setPreviewUrl(URL.createObjectURL(file));
+      const previewUrl = URL.createObjectURL(file);
+      console.log('[FILE_CHANGE] Created preview URL:', previewUrl);
+      setPreviewUrl(previewUrl);
     } catch (err) {
-      console.error('File selection error:', err);
+      console.error('[FILE_CHANGE] Exception caught during file load:', err);
       showToast('File load error: ' + err.message, 'error');
     }
   }
+
 
 
 
@@ -307,15 +324,15 @@ export function UserDashboard({ onNavigate }) {
       <section className="mb-12">
         <h2 className="text-xs font-bold uppercase tracking-wider text-zinc-400 mb-4 font-mono">Capture Document</h2>
         
-        {/* Hidden File Input */}
+        {/* Hidden File Input (Removing direct capture to allow phone to offer Camera + Gallery fallbacks) */}
         <input
           type="file"
           ref={fileInputRef}
           onChange={handleFileChange}
           accept="image/*"
-          capture="environment"
           className="hidden"
         />
+
 
         {!previewUrl ? (
           /* Large Clickable Scanner Area */
