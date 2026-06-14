@@ -1,0 +1,18 @@
+# netlify.toml
+# Automated deployment configuration for Netlify
+
+[build]
+  # The directory containing the React code
+  base = "frontend"
+  
+  # The directory to publish (relative to the base directory)
+  publish = "dist"
+  
+  # The build command
+  command = "npm run build"
+
+# SPA routing fallback (redirects all paths to index.html so custom routes resolve)
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
