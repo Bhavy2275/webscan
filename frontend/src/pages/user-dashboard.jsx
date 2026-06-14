@@ -1,5 +1,5 @@
 /**
- * @fileoverview User Dashboard and Scan Upload interface (with Client-side Compression).
+ * @fileoverview User Dashboard and Scan Upload interface (iOS and Mobile optimized).
  * @module pages/user-dashboard
  */
 
@@ -13,6 +13,7 @@ import {
 
 /**
  * Compresses and resizes an image file natively in the browser using HTML5 Canvas.
+ * Optimized for mobile Safari/Chrome to prevent onload race-condition hanging.
  * 
  * @param {File} file - The raw input file from input picker.
  * @param {number} [maxWidth=1600] - Max width constraint.
@@ -23,10 +24,11 @@ import {
 function compressImage(file, maxWidth = 1600, maxHeight = 1600, quality = 0.8) {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
-    reader.readAsDataURL(file);
+    
     reader.onload = (event) => {
       const img = new Image();
-      img.src = event.target.result;
+      
+      // CRITICAL FOR MOBILE SAFARI: Define onload and onerror BEFORE setting img.src
       img.onload = () => {
         let width = img.width;
         let height = img.height;
@@ -51,25 +53,57 @@ function compressImage(file, maxWidth = 1600, maxHeight = 1600, quality = 0.8) {
         const ctx = canvas.getContext('2d');
         ctx.drawImage(img, 0, 0, width, height);
 
-        canvas.toBlob(
-          (blob) => {
-            if (!blob) {
-              return reject(new Error('Canvas image compression failed.'));
+        // Fallback for canvas.toBlob on older mobile browsers
+        if (canvas.toBlob) {
+          canvas.toBlob(
+            (blob) => {
+              if (!blob) {
+                return reject(new Error('Canvas image compression failed.'));
+              }
+              const compressedFile = new File([blob], file.name, {
+                type: 'image/jpeg',
+                lastModified: Date.now(),
+              });
+              resolve(compressedFile);
+            },
+            'image/jpeg',
+            quality
+          );
+        } else {
+          try {
+            const dataUrl = canvas.toDataURL('image/jpeg', quality);
+            const parts = dataUrl.split(',');
+            const mime = parts[0].match(/:(.*?);/)[1];
+            const bstr = atob(parts[1]);
+            let n = bstr.length;
+            const u8arr = new Uint8Array(n);
+            while (n--) {
+              u8arr[n] = bstr.charCodeAt(n);
             }
-            // Return a new File object with the original name
+            const blob = new Blob([u8arr], { type: mime });
             const compressedFile = new File([blob], file.name, {
               type: 'image/jpeg',
               lastModified: Date.now(),
             });
             resolve(compressedFile);
-          },
-          'image/jpeg',
-          quality
-        );
+          } catch (e) {
+            reject(new Error('Canvas toDataURL fallback failed: ' + e.message));
+          }
+        }
       };
-      img.onerror = (err) => reject(err);
+      
+      img.onerror = (err) => {
+        reject(new Error('Failed to load image element on mobile: ' + err.message));
+      };
+      
+      img.src = event.target.result; // Set src LAST after handlers are bound
     };
-    reader.onerror = (err) => reject(err);
+
+    reader.onerror = (err) => {
+      reject(new Error('Failed to read selected image file: ' + err.message));
+    };
+
+    reader.readAsDataURL(file);
   });
 }
 
@@ -88,7 +122,6 @@ export function UserDashboard({ onNavigate }) {
 
   function showToast(message, type = 'success') {
     setToast({ show: true, message, type });
-    // Keep warning or long-running status toast open longer, standard auto-hide in 3s
     if (type !== 'info') {
       setTimeout(() => {
         setToast((current) => current.message === message ? { ...current, show: false } : current);
@@ -134,7 +167,7 @@ export function UserDashboard({ onNavigate }) {
     showToast('Compressing image size...', 'info');
 
     try {
-      // 1. Compress image in browser (reduces size from ~15MB to ~800KB)
+      // 1. Compress image in browser (safely resolves on iOS/Android now)
       const compressedFile = await compressImage(selectedFile);
       
       const formData = new FormData();
