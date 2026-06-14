@@ -3,7 +3,7 @@
  * @module pages/login
  */
 
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { useAuth } from '../hooks/use-auth';
 import { LogIn, Loader2, KeyRound, Mail, Camera } from 'lucide-react';
 

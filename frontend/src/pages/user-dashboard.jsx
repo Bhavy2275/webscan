@@ -3,7 +3,7 @@
  * @module pages/user-dashboard
  */
 
-import React, { useState, useRef } from 'react';
+import { useState } from 'react';
 import { useAuth } from '../hooks/use-auth';
 import { api } from '../api/client';
 import { 
@@ -150,8 +150,6 @@ export function UserDashboard({ onNavigate }) {
   // Toast notifications
   const [toast, setToast] = useState({ show: false, message: '', type: 'success' });
   
-  const fileInputRef = useRef(null);
-  const cameraInputRef = useRef(null);
 
 
   function showToast(message, type = 'success') {
@@ -212,27 +210,6 @@ export function UserDashboard({ onNavigate }) {
 
 
 
-
-  // Trigger file selection (triggers camera on mobile)
-  function triggerScanner() {
-    if (fileInputRef.current) {
-      fileInputRef.current.click();
-    }
-  }
-
-  // Trigger file selection via gallery/files picker
-  function triggerGallery() {
-    if (fileInputRef.current) {
-      fileInputRef.current.click();
-    }
-  }
-
-  // Trigger file selection via direct camera capture
-  function triggerCamera() {
-    if (cameraInputRef.current) {
-      cameraInputRef.current.click();
-    }
-  }
 
   // Request browser camera stream to force Android OS permission prompt
   async function troubleshootCamera(e) {
@@ -481,6 +458,7 @@ export function UserDashboard({ onNavigate }) {
               </div>
             </div>
           </div>
+        )}
       </section>
     </div>
   );

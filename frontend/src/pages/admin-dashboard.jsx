@@ -3,12 +3,12 @@
  * @module pages/admin-dashboard
  */
 
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../hooks/use-auth';
 import { supabase } from '../utils/supabase';
 import { api } from '../api/client';
 import { 
-  Shield, Users, FileText, Calendar, Trash2, Download, Eye, 
+  Shield, Users, FileText, Trash2, Download, Eye, 
   Plus, UserMinus, LogOut, ArrowLeft, RefreshCw, AlertTriangle, 
   CheckCircle2, Folder, ChevronDown, ChevronRight, KeyRound, Mail, UserPlus
 } from 'lucide-react';
@@ -44,7 +44,7 @@ export function AdminDashboard({ onNavigate }) {
   }
 
   // Fetch all scans with uploader profile emails
-  async function fetchAllScans() {
+  const fetchAllScans = useCallback(async () => {
     try {
       const { data, error } = await supabase
         .from('scans')
@@ -73,10 +73,10 @@ export function AdminDashboard({ onNavigate }) {
       console.error('Error fetching scans:', err);
       showToast('Failed to fetch scans history.', 'error');
     }
-  }
+  }, []);
 
   // Fetch profiles from backend
-  async function fetchUserProfiles() {
+  const fetchUserProfiles = useCallback(async () => {
     try {
       const result = await api.get('/admin/users');
       if (result.success) {
@@ -86,18 +86,28 @@ export function AdminDashboard({ onNavigate }) {
       console.error('Error fetching users:', err);
       showToast('Failed to load user directories.', 'error');
     }
-  }
+  }, []);
 
   // Combined data fetcher
-  async function reloadDashboardData() {
+  const reloadDashboardData = useCallback(async () => {
     setLoading(true);
     await Promise.all([fetchAllScans(), fetchUserProfiles()]);
     setLoading(false);
-  }
+  }, [fetchAllScans, fetchUserProfiles]);
 
   useEffect(() => {
-    reloadDashboardData();
-  }, []);
+    let isMounted = true;
+    async function loadData() {
+      await Promise.all([fetchAllScans(), fetchUserProfiles()]);
+      if (isMounted) {
+        setLoading(false);
+      }
+    }
+    loadData();
+    return () => {
+      isMounted = false;
+    };
+  }, [fetchAllScans, fetchUserProfiles]);
 
   // Toggle accordion folder
   function toggleFolder(folderName) {

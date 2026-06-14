@@ -69,7 +69,7 @@ async function request(path, options = {}) {
   let responseData;
   try {
     responseData = await response.json();
-  } catch (e) {
+  } catch {
     responseData = {};
   }
 

@@ -3,7 +3,7 @@
  * @module App
  */
 
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { AuthProvider, useAuth } from './hooks/use-auth';
 import { ProtectedRoute } from './components/protected-route';
 import { Login } from './pages/login';
