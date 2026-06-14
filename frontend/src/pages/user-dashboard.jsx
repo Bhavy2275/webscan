@@ -148,6 +148,8 @@ export function UserDashboard({ onNavigate }) {
   const [toast, setToast] = useState({ show: false, message: '', type: 'success' });
   
   const fileInputRef = useRef(null);
+  const cameraInputRef = useRef(null);
+
 
   function showToast(message, type = 'success') {
     setToast({ show: true, message, type });
@@ -205,6 +207,21 @@ export function UserDashboard({ onNavigate }) {
       fileInputRef.current.click();
     }
   }
+
+  // Trigger file selection via gallery/files picker
+  function triggerGallery() {
+    if (fileInputRef.current) {
+      fileInputRef.current.click();
+    }
+  }
+
+  // Trigger file selection via direct camera capture
+  function triggerCamera() {
+    if (cameraInputRef.current) {
+      cameraInputRef.current.click();
+    }
+  }
+
 
   // Cancel selected scan
   function handleCancelPreview() {
@@ -324,7 +341,7 @@ export function UserDashboard({ onNavigate }) {
       <section className="mb-12">
         <h2 className="text-xs font-bold uppercase tracking-wider text-zinc-400 mb-4 font-mono">Capture Document</h2>
         
-        {/* Hidden File Input (Removing direct capture to allow phone to offer Camera + Gallery fallbacks) */}
+        {/* Hidden File Input for Gallery/Files picker */}
         <input
           type="file"
           ref={fileInputRef}
@@ -333,21 +350,48 @@ export function UserDashboard({ onNavigate }) {
           className="hidden"
         />
 
+        {/* Hidden File Input for direct Camera capture */}
+        <input
+          type="file"
+          ref={cameraInputRef}
+          onChange={handleFileChange}
+          accept="image/*"
+          capture="environment"
+          className="hidden"
+        />
+
+
 
         {!previewUrl ? (
-          /* Large Clickable Scanner Area */
-          <div 
-            onClick={triggerScanner}
-            className="glass-panel border-dashed border border-zinc-800 hover:border-zinc-500 hover:bg-zinc-950/40 rounded-2xl p-16 text-center flex flex-col items-center justify-center cursor-pointer transition-all duration-350 group"
-          >
-            <div className="h-14 w-14 bg-zinc-900 rounded-xl flex items-center justify-center border border-zinc-800 mb-4 group-hover:border-white transition-colors duration-300">
-              <Camera className="h-6 w-6 text-zinc-400 group-hover:text-white" />
+          /* Grid showing two capture options */
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+            {/* Camera scanner */}
+            <div 
+              onClick={triggerCamera}
+              className="glass-panel border-dashed border border-zinc-800 hover:border-zinc-500 hover:bg-zinc-950/40 rounded-2xl p-12 text-center flex flex-col items-center justify-center cursor-pointer transition-all duration-350 group"
+            >
+              <div className="h-12 w-12 bg-zinc-900 rounded-xl flex items-center justify-center border border-zinc-800 mb-4 group-hover:border-white transition-colors duration-300">
+                <Camera className="h-5 w-5 text-zinc-400 group-hover:text-white" />
+              </div>
+              <h3 className="text-sm font-bold text-white mb-2 uppercase tracking-wide font-mono">Capture Photo</h3>
+              <p className="text-xs text-zinc-400 max-w-xs">
+                Directly launch your device camera to snap and scan a document.
+              </p>
             </div>
-            <h3 className="text-base font-bold text-white mb-2 uppercase tracking-wide font-mono">Scan Document</h3>
-            <p className="text-xs text-zinc-400 max-w-sm mb-1">
-              Tap to open your device camera (mobile) or choose a file from your desktop.
-            </p>
-            <span className="text-[10px] text-zinc-650 font-mono">Only administrators can access and view uploads.</span>
+
+            {/* Gallery picker */}
+            <div 
+              onClick={triggerGallery}
+              className="glass-panel border-dashed border border-zinc-800 hover:border-zinc-500 hover:bg-zinc-950/40 rounded-2xl p-12 text-center flex flex-col items-center justify-center cursor-pointer transition-all duration-350 group"
+            >
+              <div className="h-12 w-12 bg-zinc-900 rounded-xl flex items-center justify-center border border-zinc-800 mb-4 group-hover:border-white transition-colors duration-300">
+                <UploadCloud className="h-5 w-5 text-zinc-400 group-hover:text-white" />
+              </div>
+              <h3 className="text-sm font-bold text-white mb-2 uppercase tracking-wide font-mono">Upload File</h3>
+              <p className="text-xs text-zinc-400 max-w-xs">
+                Choose a photo or document from your device library or Google Photos.
+              </p>
+            </div>
           </div>
         ) : (
           /* Scan Preview Mode */
