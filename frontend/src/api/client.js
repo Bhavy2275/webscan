@@ -5,7 +5,11 @@
 
 import { supabase } from '../utils/supabase';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+let API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5001/api';
+// Auto-append '/api' if the environmental variable omits it
+if (API_URL && !API_URL.endsWith('/api') && !API_URL.endsWith('/api/')) {
+  API_URL = API_URL.replace(/\/$/, '') + '/api';
+}
 
 /**
  * Perform a secure fetch request to the Express backend.
