@@ -1,5 +1,5 @@
 /**
- * @fileoverview User Dashboard and Scan Upload interface (Minimalist theme, Upload-Only for users).
+ * @fileoverview User Dashboard and Scan Upload interface (with Client-side Compression).
  * @module pages/user-dashboard
  */
 
@@ -10,6 +10,68 @@ import {
   Camera, UploadCloud, RefreshCw, LogOut, Shield, 
   CheckCircle2, AlertTriangle 
 } from 'lucide-react';
+
+/**
+ * Compresses and resizes an image file natively in the browser using HTML5 Canvas.
+ * 
+ * @param {File} file - The raw input file from input picker.
+ * @param {number} [maxWidth=1600] - Max width constraint.
+ * @param {number} [maxHeight=1600] - Max height constraint.
+ * @param {number} [quality=0.8] - Output JPEG quality (0.0 to 1.0).
+ * @returns {Promise<File>} Compressed File object.
+ */
+function compressImage(file, maxWidth = 1600, maxHeight = 1600, quality = 0.8) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+    reader.onload = (event) => {
+      const img = new Image();
+      img.src = event.target.result;
+      img.onload = () => {
+        let width = img.width;
+        let height = img.height;
+
+        // Calculate new responsive dimensions
+        if (width > height) {
+          if (width > maxWidth) {
+            height = Math.round((height * maxWidth) / width);
+            width = maxWidth;
+          }
+        } else {
+          if (height > maxHeight) {
+            width = Math.round((width * maxHeight) / height);
+            height = maxHeight;
+          }
+        }
+
+        const canvas = document.createElement('canvas');
+        canvas.width = width;
+        canvas.height = height;
+
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, width, height);
+
+        canvas.toBlob(
+          (blob) => {
+            if (!blob) {
+              return reject(new Error('Canvas image compression failed.'));
+            }
+            // Return a new File object with the original name
+            const compressedFile = new File([blob], file.name, {
+              type: 'image/jpeg',
+              lastModified: Date.now(),
+            });
+            resolve(compressedFile);
+          },
+          'image/jpeg',
+          quality
+        );
+      };
+      img.onerror = (err) => reject(err);
+    };
+    reader.onerror = (err) => reject(err);
+  });
+}
 
 export function UserDashboard({ onNavigate }) {
   const { user, role, signOut } = useAuth();
@@ -26,9 +88,12 @@ export function UserDashboard({ onNavigate }) {
 
   function showToast(message, type = 'success') {
     setToast({ show: true, message, type });
-    setTimeout(() => {
-      setToast({ show: false, message: '', type: 'success' });
-    }, 4000);
+    // Keep warning or long-running status toast open longer, standard auto-hide in 3s
+    if (type !== 'info') {
+      setTimeout(() => {
+        setToast((current) => current.message === message ? { ...current, show: false } : current);
+      }, 4000);
+    }
   }
 
   // Handle file picker selection
@@ -66,11 +131,20 @@ export function UserDashboard({ onNavigate }) {
     if (!selectedFile) return;
 
     setUploading(true);
-    const formData = new FormData();
-    formData.append('image', selectedFile);
+    showToast('Compressing image size...', 'info');
 
     try {
+      // 1. Compress image in browser (reduces size from ~15MB to ~800KB)
+      const compressedFile = await compressImage(selectedFile);
+      
+      const formData = new FormData();
+      formData.append('image', compressedFile);
+
+      showToast('Uploading file to server...', 'info');
+
+      // 2. Upload file
       const result = await api.post('/upload', formData);
+      
       showToast('Scan uploaded successfully to cloud directory.', 'success');
       handleCancelPreview();
     } catch (err) {
@@ -93,14 +167,22 @@ export function UserDashboard({ onNavigate }) {
 
   return (
     <div className="max-w-4xl mx-auto px-4 py-8">
-      {/* Toast Notification */}
+      {/* Centered Toast Notification */}
       {toast.show && (
-        <div className={`fixed top-6 right-6 z-50 flex items-center space-x-3 p-4 rounded-xl shadow-lg border animate-fade-in ${
+        <div className={`fixed top-6 left-1/2 transform -translate-x-1/2 z-50 flex items-center space-x-3 p-4 rounded-xl shadow-xl border animate-fade-in w-[90%] max-w-sm ${
           toast.type === 'error' 
-            ? 'bg-red-950/90 border-red-500/30 text-red-200' 
-            : 'bg-zinc-900/90 border-zinc-700/50 text-white font-mono'
+            ? 'bg-red-950/95 border-red-500/30 text-red-200' 
+            : toast.type === 'info'
+              ? 'bg-zinc-900/95 border-zinc-700/50 text-zinc-300 font-mono animate-pulse'
+              : 'bg-zinc-900/95 border-zinc-700/50 text-white font-mono'
         }`}>
-          {toast.type === 'error' ? <AlertTriangle className="h-4 w-4" /> : <CheckCircle2 className="h-4 w-4" />}
+          {toast.type === 'error' ? (
+            <AlertTriangle className="h-4 w-4 text-red-400 flex-shrink-0" />
+          ) : toast.type === 'info' ? (
+            <RefreshCw className="h-4 w-4 text-zinc-400 animate-spin flex-shrink-0" />
+          ) : (
+            <CheckCircle2 className="h-4 w-4 text-white flex-shrink-0" />
+          )}
           <span className="text-xs font-semibold">{toast.message}</span>
         </div>
       )}
@@ -210,7 +292,7 @@ export function UserDashboard({ onNavigate }) {
                     {uploading ? (
                       <>
                         <RefreshCw className="h-4 w-4 animate-spin text-zinc-500" />
-                        <span>Uploading...</span>
+                        <span>Processing...</span>
                       </>
                     ) : (
                       <>
